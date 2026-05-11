@@ -115,13 +115,20 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
             continue
 
         log(f"  Found '{TARGET_BATCH}' on page {page_idx + 1}")
-        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
 
+        # Join pairs of lines to catch split entries like "MINOR TEST #\n2 JEE ADV"
+        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+        combined_lines = []
         for i, ln in enumerate(lines):
+            combined_lines.append(ln)
+            if i + 1 < len(lines):
+                combined_lines.append(ln + " " + lines[i + 1])
+
+        for i, ln in enumerate(combined_lines):
             line_up = ln.upper()
 
-            # Skip ACTIVITY/INTERNAL TEST lines — only pick direct test names
-            if 'ACTIVITY' in line_up and 'INTERNAL TEST' in line_up:
+            # Skip pure ACTIVITY:INTERNAL TEST lines
+            if re.match(r'^ACTIVITY\s*:\s*INTERNAL TEST', ln, re.IGNORECASE):
                 continue
 
             matched = False
@@ -129,19 +136,25 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
                 if pat.search(ln):
                     matched = True
                     break
+
+            # Also directly catch "MINOR TEST # 2 JEE ADV" pattern
+            if not matched and re.search(r'MINOR TEST\s*#?\s*\d+\s+JEE\s+ADV', ln, re.IGNORECASE):
+                matched = True
+
             if not matched:
                 continue
 
-            # Try to find a date in this line or nearby lines
+            # Find a date nearby
             date_str = None
-            window = lines[max(0, i-2):min(len(lines), i+3)]
+            orig_idx = i // 2  # rough map back to original lines
+            window = lines[max(0, orig_idx-2):min(len(lines), orig_idx+4)]
             for nearby in window:
                 dm = DATE_RE.search(nearby)
                 if dm:
                     date_str = dm.group(1).strip()
                     break
 
-            # Determine test type
+            # Determine type
             if "JEE ADV" in line_up or "ADVANCED" in line_up:
                 ttype = "JEE Advanced"
             elif "JEE MAIN" in line_up or "MAIN" in line_up:
@@ -165,7 +178,6 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
             if date_str:
                 name = name.replace(date_str, "").strip(" ,:-")
 
-            # Use the week end date (17th May) as fallback date
             key = name.lower()
             if key not in seen:
                 seen.add(key)
@@ -178,7 +190,6 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
                 log(f"  Test found: {name!r}  date={date_str}")
 
     return tests
-
 
 # ── PDF PARSER ────────────────────────────────────────────────────────────────
 def extract_polaris_r_schedule(pdf_path: Path) -> dict | None:

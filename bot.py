@@ -116,80 +116,42 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
 
         log(f"  Found '{TARGET_BATCH}' on page {page_idx + 1}")
 
-        # Join pairs of lines to catch split entries like "MINOR TEST #\n2 JEE ADV"
-        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
-        combined_lines = []
-        for i, ln in enumerate(lines):
-            combined_lines.append(ln)
-            if i + 1 < len(lines):
-                combined_lines.append(ln + " " + lines[i + 1])
+        # Only extract the section AFTER "POLARIS R" appears
+        # Split on POLARIS R and take only what follows it
+        idx = raw.upper().find(TARGET_BATCH.upper())
+        if idx == -1:
+            continue
+        polaris_section = raw[idx:]
 
-        for i, ln in enumerate(combined_lines):
+        # Stop at the next batch name (next all-caps batch header)
+        # We only want lines until the next major section
+        lines = [ln.strip() for ln in polaris_section.splitlines() if ln.strip()]
+
+        # Only look at first 15 lines after POLARIS R — that's where its tests are
+        lines = lines[:15]
+
+        for i, ln in enumerate(lines):
             line_up = ln.upper()
 
-            # Skip pure ACTIVITY:INTERNAL TEST lines
-            if re.match(r'^ACTIVITY\s*:\s*INTERNAL TEST', ln, re.IGNORECASE):
+            # Skip ACTIVITY:INTERNAL TEST lines
+            if re.search(r'ACTIVITY.*INTERNAL TEST', ln, re.IGNORECASE):
                 continue
 
-            matched = False
-            for pat in TEST_PATTERNS:
-                if pat.search(ln):
-                    matched = True
-                    break
-
-            # Also directly catch "MINOR TEST # 2 JEE ADV" pattern
-            if not matched and re.search(r'MINOR TEST\s*#?\s*\d+\s+JEE\s+ADV', ln, re.IGNORECASE):
-                matched = True
+            # Look for MINOR TEST or direct JEE ADV test
+            matched = bool(re.search(
+                r'MINOR\s+TEST\s*#?\s*\d*|MINOR\s+TEST\s*#',
+                ln, re.IGNORECASE
+            ))
 
             if not matched:
                 continue
 
-            # Find a date nearby
+            # Find date in nearby lines
             date_str = None
-            orig_idx = i // 2  # rough map back to original lines
-            window = lines[max(0, orig_idx-2):min(len(lines), orig_idx+4)]
+            window = lines[max(0, i-2):min(len(lines), i+4)]
             for nearby in window:
                 dm = DATE_RE.search(nearby)
                 if dm:
-                    date_str = dm.group(1).strip()
-                    break
-
-            # Determine type
-            if "JEE ADV" in line_up or "ADVANCED" in line_up:
-                ttype = "JEE Advanced"
-            elif "JEE MAIN" in line_up or "MAIN" in line_up:
-                ttype = "JEE Main"
-            elif "NEET" in line_up:
-                ttype = "NEET"
-            elif "QUIZ" in line_up:
-                ttype = "Quiz"
-            elif "INTERNAL" in line_up:
-                ttype = "Internal Test"
-            elif "FULL TEST" in line_up or "ONLINE" in line_up:
-                ttype = "Full Test (Online)"
-            elif "SUB" in line_up or "SUBJECTIVE" in line_up:
-                ttype = "Minor Test (Subjective)"
-            elif "OBJ" in line_up or "OBJECTIVE" in line_up:
-                ttype = "Minor Test (Objective)"
-            else:
-                ttype = "Test / Exam"
-
-            name = re.sub(r'\s+', ' ', ln).strip()
-            if date_str:
-                name = name.replace(date_str, "").strip(" ,:-")
-
-            key = name.lower()
-            if key not in seen:
-                seen.add(key)
-                tests.append({
-                    "name":  name,
-                    "date":  date_str or "17TH MAY 2026",
-                    "type":  ttype,
-                    "week":  week_label,
-                })
-                log(f"  Test found: {name!r}  date={date_str}")
-
-    return tests
 
 # ── PDF PARSER ────────────────────────────────────────────────────────────────
 def extract_polaris_r_schedule(pdf_path: Path) -> dict | None:

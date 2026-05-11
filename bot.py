@@ -100,15 +100,6 @@ def safe_filename(url: str, label: str = "") -> str:
 
 # ── TEST EXTRACTOR ────────────────────────────────────────────────────────────
 def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
-    """
-    Scan ALL pages of the PDF for test/exam entries related to POLARIS R.
-    Returns a list of dicts: {name, date, type}
-    Strategy:
-      1. Find the page(s) that contain POLARIS R.
-      2. On those pages collect every line that matches a TEST_PATTERN.
-      3. Also collect date hints near those lines (e.g. "18TH MAY 2026").
-      4. Try to extract a specific time/date if mentioned.
-    """
     DATE_RE = re.compile(
         r'(\d{1,2}(?:ST|ND|RD|TH)?\s+(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\w*\s*\d{4})',
         re.IGNORECASE
@@ -120,13 +111,19 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
     for page_idx, page in enumerate(reader.pages):
         raw = page.extract_text() or ""
 
-        # Only look on pages that mention POLARIS R
         if TARGET_BATCH.upper() not in raw.upper():
             continue
 
+        log(f"  Found '{TARGET_BATCH}' on page {page_idx + 1}")
         lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
 
         for i, ln in enumerate(lines):
+            line_up = ln.upper()
+
+            # Skip ACTIVITY/INTERNAL TEST lines — only pick direct test names
+            if 'ACTIVITY' in line_up and 'INTERNAL TEST' in line_up:
+                continue
+
             matched = False
             for pat in TEST_PATTERNS:
                 if pat.search(ln):
@@ -144,8 +141,7 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
                     date_str = dm.group(1).strip()
                     break
 
-            # Determine test type label
-            line_up = ln.upper()
+            # Determine test type
             if "JEE ADV" in line_up or "ADVANCED" in line_up:
                 ttype = "JEE Advanced"
             elif "JEE MAIN" in line_up or "MAIN" in line_up:
@@ -165,18 +161,17 @@ def extract_tests_from_pdf(reader, week_label: str) -> list[dict]:
             else:
                 ttype = "Test / Exam"
 
-            # Clean up the name
             name = re.sub(r'\s+', ' ', ln).strip()
-            # Remove trailing date from name if already captured
             if date_str:
                 name = name.replace(date_str, "").strip(" ,:-")
 
+            # Use the week end date (17th May) as fallback date
             key = name.lower()
             if key not in seen:
                 seen.add(key)
                 tests.append({
                     "name":  name,
-                    "date":  date_str or "See timetable",
+                    "date":  date_str or "17TH MAY 2026",
                     "type":  ttype,
                     "week":  week_label,
                 })

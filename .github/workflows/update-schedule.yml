@@ -2,12 +2,11 @@ name: Update POLARIS R Schedule
 
 on:
   schedule:
-    # Runs every hour — adjust if you want less frequent checks
-  - cron: '0 23 * * 0'
-  workflow_dispatch:  # Also lets you run it manually from GitHub UI
+    - cron: '0 23 * * 0'
+  workflow_dispatch:
 
 permissions:
-  contents: write   # needed to commit schedule_data.js back to repo
+  contents: write
   pages: write
   id-token: write
 
@@ -16,31 +15,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Check out your repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3. Install Python dependencies
       - name: Install Python deps
         run: |
           pip install playwright pypdf
           python -m playwright install chromium
           python -m playwright install-deps chromium
 
-      # 4. Run the bot — it writes schedule_data.js in the same folder
       - name: Run timetable bot
         run: python bot.py --output ./pdfs
-        # If the bot fails (e.g. site is down), the old schedule_data.js stays
-        # and Pages keeps serving the last good version — no crash.
         continue-on-error: true
 
-      # 5. Commit schedule_data.js if it changed
+      - name: Check if schedule changed
+        id: check_change
+        run: |
+          git diff --quiet schedule_data.js && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
       - name: Commit updated schedule_data.js
         run: |
           git config user.name  "github-actions[bot]"
@@ -49,11 +46,18 @@ jobs:
           git diff --cached --quiet || git commit -m "chore: auto-update schedule $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push || true
 
-      # 6. Deploy the whole site to GitHub Pages
+      - name: Send Telegram notification
+        if: steps.check_change.outputs.changed == 'true'
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="HTML" \
+            -d text="🚀 <b>POLARIS R Schedule Updated!</b>%0A%0ANew timetable PDF detected and parsed.%0A%0A📅 View your updated schedule:%0Ahttps://notapolymath7.github.io/POLARIS-R-TIMETABLE/"
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'   # uploads index.html + schedule_data.js
+          path: '.'
 
   deploy:
     needs: fetch-and-deploy

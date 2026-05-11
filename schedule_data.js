@@ -75,6 +75,25 @@ const SCHEDULE_DATA = {
     ],
     "SUNDAY": []
   },
-  "tests": [],
-  "generated_at": "11 May 2026, 05:52"
+  "tests": [
+    {
+      "name": "MINOR TEST # 2 JEE ADV",
+      "date": "17TH MAY 2026",
+      "type": "JEE Advanced",
+      "week": "11 MAY - 17 MAY 2026"
+    },
+    {
+      "name": "MINOR TEST # 1",
+      "date": "17TH MAY 2026",
+      "type": "Test / Exam",
+      "week": "11 MAY - 17 MAY 2026"
+    },
+    {
+      "name": "2 JEE ADV ACTIVITY : INTERNAL TEST # 1",
+      "date": "24TH MAY 2026",
+      "type": "JEE Advanced",
+      "week": "11 MAY - 17 MAY 2026"
+    }
+  ],
+  "generated_at": "11 May 2026, 05:57"
 };

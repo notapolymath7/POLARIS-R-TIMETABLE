@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POLARIS R — Weekly Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0c10;
+    --surface:   #10141c;
+    --border:    #1e2535;
+    --accent:    #4f9cf9;
+    --accent2:   #a78bfa;
+    --glow:      rgba(79,156,249,0.18);
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --mon:       #fb923c;
+    --tue:       #4f9cf9;
+    --wed:       #34d399;
+    --thu:       #f472b6;
+    --fri:       #facc15;
+    --sat:       #a78bfa;
+    --sun:       #f87171;
+    --test-warn: #f59e0b;
+    --test-bg:   rgba(245,158,11,0.06);
+    --test-border: rgba(245,158,11,0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,156,249,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 90%, rgba(167,139,250,0.07) 0%, transparent 60%);
+    pointer-events:none;
+  }
+
+  .stars {
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 70%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 25%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 55%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5%  45%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 5%,  rgba(255,255,255,0.5) 0%, transparent 100%);
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; flex-direction: column; gap: 0.4rem;
+    margin-bottom: 2.5rem;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: rgba(79,156,249,0.1);
+    border: 1px solid rgba(79,156,249,0.3);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.3rem 0.85rem; border-radius: 99px;
+    width: fit-content; letter-spacing: 0.08em; margin-bottom: 0.5rem;
+  }
+  .badge::before { content:'●'; font-size:0.5rem; animation: blink 2s infinite; }
+
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+
+  .sub { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--muted); letter-spacing: 0.05em; }
+
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 1.5rem;
+    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);
+  }
+  .meta-item { display: flex; flex-direction: column; gap: 0.15rem; }
+  .meta-item label {
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .meta-item span { font-size: 0.92rem; font-weight: 600; }
+
+  /* ── TABS + VIEW TOGGLE ── */
+  .day-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.5rem; animation: fadeUp 0.6s 0.1s ease both; }
+
+  .tab-btn {
+    font-family: 'Space Mono', monospace; font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.1em; padding: 0.4rem 1rem; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    cursor: pointer; transition: all 0.18s; text-transform: uppercase;
+  }
+  .tab-btn:hover { border-color: var(--accent); color: var(--text); }
+  .tab-btn.active { color: #fff; border-color: transparent; }
+  .tab-btn[data-day="MONDAY"].active    { background: var(--mon); box-shadow: 0 0 14px rgba(251,146,60,0.4); }
+  .tab-btn[data-day="TUESDAY"].active   { background: var(--tue); box-shadow: 0 0 14px rgba(79,156,249,0.4); }
+  .tab-btn[data-day="WEDNESDAY"].active { background: var(--wed); box-shadow: 0 0 14px rgba(52,211,153,0.4); }
+  .tab-btn[data-day="THURSDAY"].active  { background: var(--thu); box-shadow: 0 0 14px rgba(244,114,182,0.4); }
+  .tab-btn[data-day="FRIDAY"].active    { background: var(--fri); color: #0a0c10; box-shadow: 0 0 14px rgba(250,204,21,0.4); }
+  .tab-btn[data-day="SATURDAY"].active  { background: var(--sat); box-shadow: 0 0 14px rgba(167,139,250,0.4); }
+  .tab-btn[data-day="SUNDAY"].active    { background: var(--sun); box-shadow: 0 0 14px rgba(248,113,113,0.4); }
+
+  .view-toggle { display: flex; gap: 0.5rem; margin-left: auto; align-items: center; }
+  .view-btn {
+    font-family: 'Space Mono', monospace; font-size: 0.68rem;
+    padding: 0.35rem 0.75rem; border-radius: 5px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .view-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .controls-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+
+  /* ── DAY VIEW ── */
+  #day-view { animation: fadeUp 0.3s ease both; }
+
+  .day-header {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border);
+  }
+  .day-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .day-title { font-size: 1.4rem; font-weight: 700; letter-spacing: 0.02em; }
+  .day-count { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); margin-left: auto; }
+
+  .slot-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .slot-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.25rem;
+    display: grid; grid-template-columns: 130px 1fr auto;
+    align-items: center; gap: 1rem;
+    transition: border-color 0.2s, transform 0.2s;
+    animation: fadeUp 0.35s ease both;
+  }
+  .slot-card:hover { border-color: rgba(79,156,249,0.35); transform: translateX(3px); }
+
+  .slot-time { font-family: 'Space Mono', monospace; font-size: 0.85rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .slot-subject { font-size: 1rem; font-weight: 600; }
+  .slot-room {
+    font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted);
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    padding: 0.25rem 0.6rem; border-radius: 5px; white-space: nowrap;
+  }
+
+  .no-class {
+    text-align: center; padding: 3rem 1rem; color: var(--muted);
+    font-family: 'Space Mono', monospace; font-size: 0.8rem; letter-spacing: 0.05em;
+  }
+  .no-class span { display: block; font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3; }
+
+  /* ── WEEK VIEW ── */
+  #week-view { display: none; animation: fadeUp 0.3s ease both; }
+  #week-view.visible { display: block; }
+  #day-view.hidden { display: none; }
+
+  .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 1rem; }
+  .week-col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.2s; }
+  .week-col:hover { border-color: rgba(79,156,249,0.3); }
+  .week-col-header {
+    padding: 0.7rem 0.9rem; font-size: 0.72rem; font-family: 'Space Mono', monospace;
+    font-weight: 700; letter-spacing: 0.1em; display: flex; justify-content: space-between;
+    align-items: center; border-bottom: 1px solid var(--border);
+  }
+  .week-slot { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); font-size: 0.78rem; }
+  .week-slot:last-child { border-bottom: none; }
+  .week-slot-time { font-family: 'Space Mono', monospace; font-size: 0.62rem; color: var(--muted); margin-bottom: 0.15rem; }
+  .week-slot-sub { font-weight: 600; }
+  .week-empty { padding: 1.2rem 0.9rem; text-align: center; font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); opacity: 0.5; }
+
+  /* ── TESTS SECTION ── */
+  .tests-section {
+    margin-top: 2.5rem;
+    animation: fadeUp 0.5s 0.15s ease both;
+  }
+
+  .tests-section-header {
+    display: flex; align-items: center; gap: 0.75rem;
+    margin-bottom: 1.1rem; padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .tests-section-title {
+    font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--test-warn);
+  }
+  .tests-pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--test-warn);
+    box-shadow: 0 0 8px rgba(245,158,11,0.6);
+    animation: blink 1.6s infinite;
+    flex-shrink: 0;
+  }
+  .tests-count-badge {
+    font-family: 'Space Mono', monospace; font-size: 0.62rem;
+    background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
+    color: var(--test-warn); padding: 0.2rem 0.6rem; border-radius: 99px;
+    margin-left: auto;
+  }
+
+  .test-card {
+    background: var(--test-bg);
+    border: 1px solid var(--test-border);
+    border-left: 3px solid var(--test-warn);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.7rem;
+    transition: border-color 0.2s, transform 0.2s;
+    animation: fadeUp 0.35s ease both;
+  }
+  .test-card:last-child { margin-bottom: 0; }
+  .test-card:hover { border-color: var(--test-warn); transform: translateX(3px); }
+
+  .test-name { font-size: 0.97rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
+  .test-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.35rem; }
+  .test-pill {
+    font-family: 'Space Mono', monospace; font-size: 0.62rem;
+    padding: 0.18rem 0.55rem; border-radius: 5px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .test-pill.date { color: var(--test-warn); border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.07); }
+  .test-type-badge {
+    font-family: 'Space Mono', monospace; font-size: 0.62rem;
+    padding: 0.25rem 0.65rem; border-radius: 5px;
+    background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3);
+    color: var(--test-warn); white-space: nowrap; flex-shrink: 0; align-self: start;
+  }
+
+  .no-tests {
+    background: rgba(100,116,139,0.05);
+    border: 1px dashed rgba(100,116,139,0.2);
+    border-radius: 10px;
+    padding: 1.8rem;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .no-tests span { display: block; font-size: 1.6rem; margin-bottom: 0.6rem; opacity: 0.3; }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+  }
+  .footer span { font-family: 'Space Mono', monospace; font-size: 0.68rem; color: var(--muted); }
+  .refresh-btn {
+    font-family: 'Space Mono', monospace; font-size: 0.68rem;
+    padding: 0.35rem 0.9rem; border-radius: 5px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--accent); cursor: pointer; transition: all 0.15s;
+  }
+  .refresh-btn:hover { background: var(--glow); border-color: var(--accent); }
+
+  /* ── ERROR ── */
+  .error-box {
+    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 10px; padding: 2rem; text-align: center;
+    font-family: 'Space Mono', monospace; font-size: 0.8rem; color: #f87171; line-height: 1.8;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp   { from { opacity: 0; transform: translateY(12px);  } to { opacity: 1; transform: translateY(0); } }
+  @keyframes blink    { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+  .c-mon { color: var(--mon); } .bg-mon { background: var(--mon); }
+  .c-tue { color: var(--tue); } .bg-tue { background: var(--tue); }
+  .c-wed { color: var(--wed); } .bg-wed { background: var(--wed); }
+  .c-thu { color: var(--thu); } .bg-thu { background: var(--thu); }
+  .c-fri { color: var(--fri); } .bg-fri { background: var(--fri); }
+  .c-sat { color: var(--sat); } .bg-sat { background: var(--sat); }
+  .c-sun { color: var(--sun); } .bg-sun { background: var(--sun); }
+
+  @media (max-width:600px) {
+    .slot-card { grid-template-columns: 1fr; gap: 0.4rem; }
+    .slot-room { width: fit-content; }
+    .test-card { grid-template-columns: 1fr; }
+    .test-type-badge { width: fit-content; }
+  }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">AUROUS ACADEMY &nbsp;·&nbsp; 12TH 2026-27</div>
+    <h1>POLARIS <span>R</span></h1>
+    <div class="sub">WEEKLY TIMETABLE</div>
+    <div class="meta-row">
+      <div class="meta-item">
+        <label>Week</label>
+        <span id="week-label">—</span>
+      </div>
+      <div class="meta-item">
+        <label>Room</label>
+        <span>C1 CR 202</span>
+      </div>
+      <div class="meta-item">
+        <label>Active Days</label>
+        <span id="active-days-count">—</span>
+      </div>
+      <div class="meta-item">
+        <label>Total Sessions</label>
+        <span id="total-sessions">—</span>
+      </div>
+      <div class="meta-item">
+        <label>Updated</label>
+        <span id="updated-at">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="day-tabs" id="day-tabs"></div>
+    <div class="view-toggle">
+      <button class="view-btn active" id="btn-day"  onclick="setView('day')">DAY</button>
+      <button class="view-btn"        id="btn-week" onclick="setView('week')">WEEK</button>
+    </div>
+  </div>
+
+  <div id="day-view">
+    <div class="day-header">
+      <div class="day-dot" id="day-dot"></div>
+      <div class="day-title" id="day-title">—</div>
+      <div class="day-count" id="day-count"></div>
+    </div>
+    <div class="slot-list" id="slot-list"></div>
+  </div>
+
+  <div id="week-view">
+    <div class="week-grid" id="week-grid"></div>
+  </div>
+
+  <!-- ── TESTS SECTION — auto-populated from schedule_data.js ── -->
+  <div class="tests-section">
+    <div class="tests-section-header">
+      <div class="tests-pulse" id="tests-pulse"></div>
+      <div class="tests-section-title">📋 Tests This Week</div>
+      <div class="tests-count-badge" id="tests-count-badge">loading…</div>
+    </div>
+    <div id="tests-list">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <div class="footer">
+    <span id="footer-note">Schedule loaded from timetable PDF</span>
+    <button class="refresh-btn" onclick="window.location.reload()">↻ Refresh</button>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// HOW THIS WORKS:
+//   The Python bot writes "schedule_data.js" in the same folder
+//   as this HTML file every time a new PDF is fetched.
+//   This page loads that file — no regex, no inline replacement.
+//   The JS now also carries a "tests" array which is rendered
+//   in the Tests section below the schedule.
+//   If tests is empty or missing → "No test scheduled this week."
+// ─────────────────────────────────────────────────────────────
+
+const DAY_COLORS = {
+  MONDAY:'mon', TUESDAY:'tue', WEDNESDAY:'wed',
+  THURSDAY:'thu', FRIDAY:'fri', SATURDAY:'sat', SUNDAY:'sun'
+};
+const DAYS = ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
+const SUBJECT_MAP = {
+  PMP:'Physics (PMP)', CRB:'Chemistry (CRB)', MRP:'Maths (MRP)',
+  CHM:'Chemistry', MTH:'Mathematics', BIO:'Biology',
+  ENG:'English', PHY:'Physics', MAT:'Maths', CHE:'Chemistry',
+  PCB:'PCB Batch', PCM:'PCM Batch',
+};
+
+let currentDay  = null;
+let currentView = 'day';
+
+function showError(msg) {
+  document.getElementById('day-view').innerHTML =
+    `<div class="error-box">⚠ ${msg}</div>`;
+}
+
+// ── TESTS RENDERER ─────────────────────────────────────────────
+function renderTests(tests) {
+  const list  = document.getElementById('tests-list');
+  const badge = document.getElementById('tests-count-badge');
+  const pulse = document.getElementById('tests-pulse');
+
+  if (!tests || tests.length === 0) {
+    badge.textContent = '0 tests';
+    pulse.style.background = 'var(--muted)';
+    pulse.style.boxShadow  = 'none';
+    list.innerHTML = `
+      <div class="no-tests">
+        <span>✅</span>
+        No test scheduled this week — enjoy the classes!
+      </div>`;
+    return;
+  }
+
+  badge.textContent = tests.length + (tests.length === 1 ? ' test' : ' tests');
+
+  list.innerHTML = '';
+  tests.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.className = 'test-card';
+    card.style.animationDelay = `${i * 0.07}s`;
+    card.innerHTML = `
+      <div>
+        <div class="test-name">${t.name}</div>
+        <div class="test-meta">
+          <span class="test-pill date">📅 ${t.date}</span>
+          <span class="test-pill">Week: ${t.week || '—'}</span>
+        </div>
+      </div>
+      <div class="test-type-badge">${t.type}</div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ── MAIN INIT ──────────────────────────────────────────────────
+function init(data) {
+  if (!data || !data.schedule) {
+    showError('No schedule data found.<br>Run the Python bot to generate schedule_data.js');
+    return;
+  }
+
+  document.getElementById('week-label').textContent  = data.week         || '—';
+  document.getElementById('updated-at').textContent  = data.generated_at || '—';
+  document.title = `POLARIS R — ${data.week || 'Weekly Schedule'}`;
+
+  const activeDays = DAYS.filter(d => (data.schedule[d]||[]).length > 0);
+  document.getElementById('active-days-count').textContent = activeDays.length + ' days';
+  const total = DAYS.reduce((s,d) => s + (data.schedule[d]||[]).length, 0);
+  document.getElementById('total-sessions').textContent = total + ' sessions';
+  document.getElementById('footer-note').textContent =
+    `Last updated from PDF: ${data.generated_at || '—'}`;
+
+  // Build day tabs
+  const tabs = document.getElementById('day-tabs');
+  tabs.innerHTML = '';
+  DAYS.forEach(day => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn';
+    btn.dataset.day = day;
+    btn.textContent = day.slice(0,3);
+    btn.style.opacity = (data.schedule[day]||[]).length > 0 ? '1' : '0.4';
+    btn.onclick = () => { currentDay = day; renderDay(day, data); updateTabs(); };
+    tabs.appendChild(btn);
+  });
+
+  const todayIdx  = new Date().getDay();
+  const todayName = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][todayIdx];
+  currentDay = activeDays.includes(todayName) ? todayName : (activeDays[0] || DAYS[0]);
+  renderDay(currentDay, data);
+  updateTabs();
+  buildWeekGrid(data);
+
+  // ── Render tests (key addition) ──────────────────────────────
+  renderTests(data.tests || []);
+}
+
+function updateTabs() {
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.day === currentDay)
+  );
+}
+
+function renderDay(day, data) {
+  const slots = data.schedule[day] || [];
+  const color = DAY_COLORS[day];
+
+  document.getElementById('day-dot').className    = `day-dot bg-${color}`;
+  document.getElementById('day-title').textContent = day;
+  document.getElementById('day-title').className   = `day-title c-${color}`;
+  document.getElementById('day-count').textContent = slots.length
+    ? slots.length + ' session' + (slots.length > 1 ? 's' : '')
+    : 'no class';
+
+  const list = document.getElementById('slot-list');
+  list.innerHTML = '';
+  if (!slots.length) {
+    list.innerHTML = '<div class="no-class"><span>🌙</span>No classes scheduled</div>';
+    return;
+  }
+  slots.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    card.style.animationDelay = `${i * 0.06}s`;
+    card.innerHTML = `
+      <div class="slot-time">${s.time}</div>
+      <div class="slot-subject">${SUBJECT_MAP[s.teacher] || 'Class ' + s.teacher}</div>
+      <div class="slot-room">${s.room || 'C1 CR 202'}</div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function buildWeekGrid(data) {
+  const grid = document.getElementById('week-grid');
+  grid.innerHTML = '';
+  DAYS.forEach(day => {
+    const slots = data.schedule[day] || [];
+    const color = DAY_COLORS[day];
+    const col = document.createElement('div');
+    col.className = 'week-col';
+    const header = document.createElement('div');
+    header.className = `week-col-header c-${color}`;
+    header.innerHTML = `<span>${day.slice(0,3)}</span><span style="color:var(--muted);font-weight:400">${slots.length || '—'}</span>`;
+    col.appendChild(header);
+    if (!slots.length) {
+      const emp = document.createElement('div');
+      emp.className = 'week-empty';
+      emp.textContent = 'off';
+      col.appendChild(emp);
+    } else {
+      slots.forEach(s => {
+        const ws = document.createElement('div');
+        ws.className = 'week-slot';
+        ws.innerHTML = `
+          <div class="week-slot-time">${s.time}</div>
+          <div class="week-slot-sub">${SUBJECT_MAP[s.teacher] || s.teacher}</div>
+        `;
+        col.appendChild(ws);
+      });
+    }
+    grid.appendChild(col);
+  });
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('day-view').classList.toggle('hidden', v !== 'day');
+  document.getElementById('week-view').classList.toggle('visible', v === 'week');
+  document.getElementById('btn-day').classList.toggle('active', v === 'day');
+  document.getElementById('btn-week').classList.toggle('active', v === 'week');
+}
+
+// ── Load schedule_data.js from the same folder ──
+// The Python bot writes this file every time a new PDF is fetched.
+// It now includes a "tests" array alongside the schedule.
+const script = document.createElement('script');
+script.src = 'schedule_data.js?t=' + Date.now(); // cache-bust
+script.onload = () => {
+  if (typeof SCHEDULE_DATA !== 'undefined') {
+    init(SCHEDULE_DATA);
+  } else {
+    showError('schedule_data.js loaded but SCHEDULE_DATA is missing.<br>Re-run the Python bot.');
+  }
+};
+script.onerror = () => {
+  showError(
+    'Could not load schedule_data.js<br>' +
+    'Make sure the Python bot has run at least once<br>' +
+    'and both files are in the same folder.'
+  );
+  // Still show "no tests" in the tests section
+  renderTests([]);
+};
+document.head.appendChild(script);
+</script>
+</body>
+</html>

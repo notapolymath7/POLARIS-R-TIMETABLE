@@ -1,0 +1,67 @@
+name: Update POLARIS R Schedule
+
+on:
+  schedule:
+    # Runs every hour — adjust if you want less frequent checks
+    - cron: '0 * * * *'
+  workflow_dispatch:  # Also lets you run it manually from GitHub UI
+
+permissions:
+  contents: write   # needed to commit schedule_data.js back to repo
+  pages: write
+  id-token: write
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out your repo
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Install Python dependencies
+      - name: Install Python deps
+        run: |
+          pip install playwright pypdf
+          python -m playwright install chromium
+          python -m playwright install-deps chromium
+
+      # 4. Run the bot — it writes schedule_data.js in the same folder
+      - name: Run timetable bot
+        run: python bot.py --output ./pdfs
+        # If the bot fails (e.g. site is down), the old schedule_data.js stays
+        # and Pages keeps serving the last good version — no crash.
+        continue-on-error: true
+
+      # 5. Commit schedule_data.js if it changed
+      - name: Commit updated schedule_data.js
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add schedule_data.js || true
+          git diff --cached --quiet || git commit -m "chore: auto-update schedule $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push || true
+
+      # 6. Deploy the whole site to GitHub Pages
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'   # uploads index.html + schedule_data.js
+
+  deploy:
+    needs: fetch-and-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

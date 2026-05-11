@@ -75,13 +75,6 @@ const SCHEDULE_DATA = {
     ],
     "SUNDAY": []
   },
-  "tests": [
-    {
-      "name": "ACTIVITY : INTERNAL TEST # 1",
-      "date": "24TH MAY 2026",
-      "type": "Internal Test",
-      "week": "11 MAY - 17 MAY 2026"
-    }
-  ],
-  "generated_at": "11 May 2026, 05:20"
+  "tests": [],
+  "generated_at": "11 May 2026, 05:52"
 };
